@@ -1,11 +1,11 @@
 Compiling the library:
 
-gcc -shared -fPIC interpolation2.c algorithm.c -o libinter.so
+gcc -shared -fPIC interpolation.c method1.c method2.c -o libinter.so
 
 Compiling the program: 
 
-gcc main.c -Wl,-rpath='$ORIGIN' -L. -linter -lm -o main
+gcc main.c -Wl,-rpath='$ORIGIN' -L. -linter -lm -o 
 
-Compiling a test system:
+Launching the program:
 
-gcc test.c -Wl,-rpath='$ORIGIN' -L. -linter -o test_inter
+./a.out *method* *many of split points* *number of fromula* *beginning of interpolation segment* *end of interpolation segment*  
