@@ -3,13 +3,13 @@
 #include "interpolation.h"
 #include <math.h>
 
-double g(double x, double(f(double)))
+double g(double x, double(f(double))) // g(x) = f'(x)
 {
     double EPS = 0.000001;
     return (f(x + EPS) - f(x)) / EPS;
-}
+} 
 	
-double g2(double x, double(f(double)))
+double g2(double x, double(f(double))) // g2(x) = f''(x)
 {
     double EPS = 0.000001;
     return (g(x + EPS, f) - g(x, f)) / EPS;
@@ -21,8 +21,8 @@ double k(double x, double y, double(f(double))) // k(x, y) := f(x; y) = (f(y) - 
 } 
 
 struct interpolation_ctx_inner {
-	int	method;
-	int	n;
+	int	method; // the method by which we interpolate
+	int	n; // many of interpolation points
 	double* a;
 	double* d;
 	double* c;
@@ -33,7 +33,7 @@ struct interpolation_ctx_inner {
 	double	(*f)(double);
 };
 
-static double f0(double x)
+static double f0(double x) 
 {
 	return x*0 + 1.0;
 }
@@ -91,11 +91,12 @@ interpolation_ctx interpolation_create(int method, int n, int k,
 	res_ptr->n = n;
 	//int m;
 	m = n + 2;
-	res_ptr->a = (double *)malloc(4*(m-1)*sizeof(double));
-	res_ptr->x = (double *)malloc(m*sizeof(double)); 
-	res_ptr->d = (double *)malloc(m*sizeof(double));
-	res_ptr->c = (double *)malloc(4*(m-1)*sizeof(double));
-	res_ptr->u = (double *)malloc(m*(m+1)*sizeof(double));
+	res_ptr->a = (double *)malloc(4*(m-1)*sizeof(double)); 
+	res_ptr->x = (double *)malloc(m*sizeof(double));  // split points
+	res_ptr->d = (double *)malloc(m*sizeof(double)); 
+	res_ptr->c = (double *)malloc(4*(m-1)*sizeof(double)); 
+	res_ptr->u = (double *)malloc(m*(m+1)*sizeof(double)); 
+	// a, d, c, u - coefficients from the formula from the method
 	
 	if (res_ptr->x == NULL || res_ptr->a == NULL)
 	{
@@ -107,7 +108,7 @@ interpolation_ctx interpolation_create(int method, int n, int k,
 	for(int i = 1; i < m ; i++)
 	{
 		res_ptr->x[i] = res_ptr->x[i-1] + (b - a) / (n + 1);
-	}
+	} // building split points
 	
 	switch (k) {
 	case 0:
@@ -130,7 +131,7 @@ interpolation_ctx interpolation_create(int method, int n, int k,
 		break;
 	case 6:
 		res_ptr->f = f6;
-	}
+	} // select the function
 	if (method == 1)
 		gen1(res_ptr->f, res_ptr->n, res_ptr->a, res_ptr->d, res_ptr->c, res_ptr->x);
 	else
