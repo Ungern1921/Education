@@ -1,0 +1,11 @@
+Compiling the library:
+
+gcc -shared -fPIC interpolation2.c algorithm.c -o libinter.so
+
+Compiling the program: 
+
+gcc main.c -Wl,-rpath='$ORIGIN' -L. -linter -lm -o main
+
+Compiling a test system:
+
+gcc test.c -Wl,-rpath='$ORIGIN' -L. -linter -o test_inter
