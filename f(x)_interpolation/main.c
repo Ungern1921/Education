@@ -8,11 +8,12 @@ int main(int argc, char** argv)
 	int method, n, k;
 	double a, b;
 	
-	method = atoi(argv[1]);
-	n = atoi(argv[2]);
-	k = atoi(argv[3]);
-	a = atof(argv[4]);
-	b = atof(argv[5]);
+	method = atoi(argv[1]); //method of interpolation
+	n = atoi(argv[2]); // split points
+	k = atoi(argv[3]); // number of formula
+	a = atof(argv[4]); 
+	b = atof(argv[5]); 
+	// [a; b] - interpolation segment
 
 	ctx = interpolation_create(method,
 				   n	, k, a, b);
