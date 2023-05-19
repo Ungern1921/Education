@@ -20,8 +20,8 @@ interpolation_ctx interpolation_create(int method, int n, int k,
 				       double a, double b);
 
 double interpolation_calculate(interpolation_ctx ctx, double e);
-void gen1(double(f(double)), int n, double* a, double* d, double* c, double* x);
-void gen2(double(f(double)), int n, double* a, double* d, double* c, double* u, double* x);
+void gen1(double(f(double)), int n, double* a, double* d, double* c, double* x); // method1 
+void gen2(double(f(double)), int n, double* a, double* d, double* c, double* u, double* x); // metod2
 void interpolation_destroy(interpolation_ctx ctx);
 double g(double x, double(f(double)));
 double g2(double x, double(f(double)));

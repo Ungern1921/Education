@@ -185,7 +185,7 @@ double norma(interpolation_ctx ctx, int N, double a, double b)
     
     
     return norma;
-}
+} // interpolation error
 
 void interpolation_destroy(interpolation_ctx ctx)
 {
@@ -195,4 +195,4 @@ void interpolation_destroy(interpolation_ctx ctx)
 	free(ctx->c);
 	free(ctx->u);
 	free(ctx);
-}
+} // clear of memory
