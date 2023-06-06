@@ -4,7 +4,7 @@
 
 
 
-void gen1(double(f(double)), int n, double* a, double* d, double* c, double * x)
+void gen1(int n, double* a, double* d, double* c, double * x, double *F, double *K, double *G)
 {
 	
 	int m;
@@ -12,20 +12,20 @@ void gen1(double(f(double)), int n, double* a, double* d, double* c, double * x)
 	
 	for(int i = 1; i < m - 1; i++)
 	{
-		d[i] = g(x[i], f);
+		d[i] = G[i];
 	}
     
-    d[0] = g(x[0], f);
-    d[m-1] = g(x[m-1], f);
+    d[0] = G[0];
+    d[m-1] = G[m-1];
     
     
 		
 	for(int i = 0; i < m - 1; i++)
 	{
-		a[i] = f(x[i]);
+		a[i] = F[i];
 		a[(m - 1) + i] = d[i];
-		a[2*(m - 1) + i] = ( k(x[i], x[i + 1], f) - d[i] ) / (x[i+1] - x[i]);
-		a[3*(m - 1) + i] = (d[i] + d[i + 1] - 2*k(x[i], x[i + 1], f)) / pow((x[i+1] - x[i]), 2);
+		a[2*(m - 1) + i] = ( K[i] - d[i] ) / (x[i+1] - x[i]);
+		a[3*(m - 1) + i] = ( d[i] + d[i + 1] - 2*K[i] ) / pow((x[i+1] - x[i]), 2);
 	}
 
 	for(int i = 0; i < m - 1; i++)

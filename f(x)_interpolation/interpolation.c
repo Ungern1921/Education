@@ -3,22 +3,42 @@
 #include "interpolation.h"
 #include <math.h>
 
-double g(double x, double(f(double))) // g(x) = f'(x)
+static double g0(double x) 
 {
-    double EPS = 0.000001;
-    return (f(x + EPS) - f(x)) / EPS;
-} 
+	return x*0;
+}
+static double g1(double x)
+{
+	return x*0 + 1;
+}
+static double g2(double x)
+{
+	return 2 * x;
+}
+static double g3(double x)
+{
+	return 3 * x * x;
+}
+static double g4(double x)
+{
+	return 4 * x * x * x;
+}
+static double g5(double x)
+{
+	return exp(x);
+}
+static double g6(double x)
+{
+	return ((-1)*50*x) / ((25.0 * x * x + 1)*(25.0 * x * x + 1));
+}
 	
-double g2(double x, double(f(double))) // g2(x) = f''(x)
+/*double g2(double x, double(f(double))) // g2(x) = f''(x)
 {
     double EPS = 0.000001;
     return (g(x + EPS, f) - g(x, f)) / EPS;
-}
+}*/
 	
-double k(double x, double y, double(f(double))) // k(x, y) := f(x; y) = (f(y) - f(x)) / (y - x)
-{	
-    return (f(y) - f(x)) / (y - x);
-} 
+
 
 struct interpolation_ctx_inner {
 	int	method; // the method by which we interpolate
@@ -28,9 +48,13 @@ struct interpolation_ctx_inner {
 	double* c;
 	double* x;
 	double* u;
+	double* F;
+	double* K;
+	double* G;
 //	double	*f_a;
 
 	double	(*f)(double);
+	double	(*g)(double);
 };
 
 static double f0(double x) 
@@ -91,14 +115,20 @@ interpolation_ctx interpolation_create(int method, int n, int k,
 	res_ptr->n = n;
 	//int m;
 	m = n + 2;
+	
 	res_ptr->a = (double *)malloc(4*(m-1)*sizeof(double)); 
 	res_ptr->x = (double *)malloc(m*sizeof(double));  // split points
 	res_ptr->d = (double *)malloc(m*sizeof(double)); 
+	//res_ptr->u = (double *)malloc(m*(m+1)*sizeof(double));
+	res_ptr->u = (double *)malloc(4*m*sizeof(double));
 	res_ptr->c = (double *)malloc(4*(m-1)*sizeof(double)); 
-	res_ptr->u = (double *)malloc(m*(m+1)*sizeof(double)); 
+	res_ptr->F = (double *)malloc(m*sizeof(double));
+	res_ptr->K = (double *)malloc((m-1)*sizeof(double));
+	res_ptr->G = (double *)malloc(m*sizeof(double));
+	//res_ptr->k = (double *)malloc((m-1)*sizeof(double)); // тут разделённые разности будут лежать
 	// a, d, c, u - coefficients from the formula from the method
 	
-	if (res_ptr->x == NULL || res_ptr->a == NULL)
+	if (res_ptr->a == NULL || res_ptr->x == NULL || res_ptr->d == NULL || res_ptr->u == NULL || res_ptr->c == NULL || res_ptr->F == NULL || res_ptr->K == NULL ||res_ptr->G == NULL)
 	{
 		fprintf(stderr, "Not enough memory\n");
 		return NULL;
@@ -109,34 +139,62 @@ interpolation_ctx interpolation_create(int method, int n, int k,
 	{
 		res_ptr->x[i] = res_ptr->x[i-1] + (b - a) / (n + 1);
 	} // building split points
+
+	/*for(int i = 0; i < m-1; i++)
+	{
+		k[i] = (f(x[i + 1]) - f(x[i])) / (x[i+1] - x[i]);
+	}*/
 	
 	switch (k) {
 	case 0:
 		res_ptr->f = f0;
+		res_ptr->g = g0;
 		break;
 	case 1:
 		res_ptr->f = f1;
+		res_ptr->g = g1;
 		break;
 	case 2:
 		res_ptr->f = f2;
+		res_ptr->g = g2;
 		break;
 	case 3:
 		res_ptr->f = f3;
+		res_ptr->g = g3;
 		break;
 	case 4:
 		res_ptr->f = f4;
+		res_ptr->g = g4;
 		break;
 	case 5:
 		res_ptr->f = f5;
+		res_ptr->g = g5;
 		break;
 	case 6:
 		res_ptr->f = f6;
+		res_ptr->g = g6;
 	} // select the function
+	
+	for(int i = 0; i < m; i++)
+	{
+		res_ptr->F[i] = res_ptr->f(res_ptr->x[i]);
+	}
+	
+	for(int i = 0; i < m; i++)
+	{
+		res_ptr->G[i] = res_ptr->g(res_ptr->x[i]);
+	}
+	
+	for(int i = 0; i < m - 1; i++)
+	{
+		res_ptr->K[i] = (res_ptr->F[i + 1] - res_ptr->F[i]) / (res_ptr->x[i + 1] - res_ptr->x[i]);
+	}
+	
 	if (method == 1)
-		gen1(res_ptr->f, res_ptr->n, res_ptr->a, res_ptr->d, res_ptr->c, res_ptr->x);
+		gen1(res_ptr->n, res_ptr->a, res_ptr->d, res_ptr->c, res_ptr->x, res_ptr->F, res_ptr->K, res_ptr->G);
 	else
 	{
-		gen2(res_ptr->f, res_ptr->n, res_ptr->a, res_ptr->d, res_ptr->c, res_ptr->u, res_ptr->x);
+		gen2(res_ptr->n, res_ptr->a, res_ptr->d, res_ptr->c, res_ptr->u, res_ptr->x, res_ptr->F, res_ptr->K, res_ptr->G);
 	}
 	return res_ptr;
 }
@@ -144,22 +202,32 @@ double interpolation_calculate(interpolation_ctx ctx, double e)
 {
 	//return 0;
 	
-	double res;
+	double res, h;
 	int n = ctx->n;
 	
-	int m;
+	int m, i;
 	m = n + 2;
     
     // printf("f = %lf\n\n", ctx->f(e));
+    
+    	
 	
-	for(int i = 0; i < m - 1; i++)
+	/*for(int i = 0; i < m - 1; i++)
 		{
 			if(e >= ctx->x[i] && e < ctx->x[i + 1])
 			{
+			
+				printf("%d\n", i);
 				res = ctx->c[i] + ctx->c[(m-1) + i]*(e - ctx->x[i]) + ctx->c[2*(m-1) + i]*pow((e - ctx->x[i]),2) + ctx->c[3*(m-1) + i]*pow((e - ctx->x[i]),3);
 
 			}
-		}
+		}*/
+	
+	h = ( ctx->x[m-1] - ctx->x[0] ) / ( m - 1 );
+	
+	i = (e - ctx->x[0]) / h;
+	
+	res = ctx->c[i] + ctx->c[(m-1) + i]*(e - ctx->x[i]) + ctx->c[2*(m-1) + i]*pow((e - ctx->x[i]),2) + ctx->c[3*(m-1) + i]*pow((e - ctx->x[i]),3);
 
 	return res;
 }
@@ -179,10 +247,9 @@ double norma(interpolation_ctx ctx, int N, double a, double b)
         raz = ctx->f(z) - interpolation_calculate(ctx, z);
         if(raz > norma)
             norma = raz;
+           
         z = z + h;
     }
-    
-    
     
     return norma;
 } // interpolation error
@@ -194,5 +261,9 @@ void interpolation_destroy(interpolation_ctx ctx)
 	free(ctx->d);
 	free(ctx->c);
 	free(ctx->u);
+	free(ctx->F);
+	free(ctx->K);
+	free(ctx->G);
+	//free(ctx->k);
 	free(ctx);
 } // clear of memory
